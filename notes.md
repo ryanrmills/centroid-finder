@@ -1,0 +1,29 @@
+ImageSummaryApp
+- if the length of the args string list is less than 3, then print out java ImageSummaryApp message that details out how the command should be outputted, and returns the method
+- inputImagePath is the first argument
+- hexTargetColor is the second argument
+- try catch where threshold contains the third item in the array and we try to turn it into an Integer object
+    - catch prints out a threshold must be an integer error, and then returns the method
+- inputImage is initially null as a 'BufferedImage' object
+- try catch where we assign an ImageIO object to inputImage. ImageIO.read() accepts a new File object, which is the path of inputImagePath
+    - catch prints out an error that states failing to load an image
+    - calls .printStackTrace() on the 'e' exception
+    - then returns the method
+- int targetColor is initialized and set to 0
+- targetColor is then set as the hexTargetColor which is the second argument from 'args'
+- try catch for failing to turn hexTargetColor string to an integer
+
+- ColorDistanceFinder object 'distanceFinder' is initialized and assigned new EuclideanColorDistance object (which implements or extends ColorDistanceFinder)
+- ImageBinarizer object binarizer is initialized and assigned 'DistanceImageBinarizer' object that takes two arguments, distanceFinder (which is a ColorDistanceFinder), targetColor, and threshold
+- int[][] binaryArray takes 'binarizer', uses its 'toBinaryArray()' method that contains the image.
+- binarizer then takes binaryArray and turns it into a toBufferedImage
+- (image -> int[][] binary array -> BufferedImage binaryImage)
+- try catch that uses ImageIO's '.write()' method that takes the binaryImage, the formatname (e.g. 'png'), and creates a new File object with the name 'binarized.png'
+    - catch prints 'Error saving binarized image'
+    - print the stack trace
+- ImageGroupfinder object groupFinder with a new object 'BinarizingImageGroupFinder()' that takes the binarizer, and a new DfsBinaryGroupFinder
+- List<Group> groups assigned by groupFinder's '.findConnectedGroups()' method, that takes in an 'inputImage'
+- try catch with a resource parameter that takes a PrintWriter object 'writer' with a new PrintWriter object that takes in a 'groups.csv' file
+    - for every 'group' in groups, print every row?
+    - then print 'groups summary saved as groups.csv
+    - catch print error then print the stack trace
