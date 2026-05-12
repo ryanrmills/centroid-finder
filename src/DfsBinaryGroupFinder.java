@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -34,82 +35,63 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
     */
     @Override
     public List<Group> findConnectedGroups(int[][] image) {
-        //have a set of visited
         Set<String> visited = new HashSet<>();
         List<Group> groupList = new ArrayList<>();
-        
-        for (int r = 0; r < image.length; r++){
-            for (int c = 0; c < image[r].length; c++){
-                String coordString = "" + c + " " + r;
-                if (image[r][c] == 1 && !visited.contains(coordString)){
-                    List<Integer> stats = new ArrayList<>();
-                    stats.add(0);
-                    stats.add(0);
-                    stats.add(0);
 
-                    stats = findGroupsHelper(
-                        stats,
-                        image, 
-                        visited,
-                        coordString, 
-                        new Coordinate(c, r)
-                    );
-                    int groupSize = stats.get(0);
-                    int xAvg = stats.get(1) / groupSize;
-                    int yAvg = stats.get(2) / groupSize;
-                    groupList.add(new Group(groupSize, new Coordinate(xAvg, yAvg)));
-                }
-            }
-        }
-        
-        groupList.sort(null);
-        Collections.reverse(groupList);
-        return groupList;
-    }
-
-    //helper method
-    public List<Integer> findGroupsHelper(
-        List<Integer> stats,
-        int[][] image, 
-        Set<String> visited,
-        String coordString,
-        Coordinate coordinate
-    ){
-        if (visited.contains(coordString)){
-            return stats;
-        }
-
-        visited.add(coordString);
-        stats.set(0, stats.get(0) + 1);
-        stats.set(1, stats.get(1) + coordinate.x());
-        stats.set(2, stats.get(2) + coordinate.y());
-
-        //coords
-        int[][] coords = {
+        int[][] directions = {
             {-1, 0},
             {1, 0},
             {0, -1},
             {0, 1}
         };
 
-        for (int[] coord : coords){
-            //not less than image length && not greater than or equal to image length
-            //not less than image row length && not greater than or equal to image row length
-            int xCoord = coordinate.x() + coord[1];
-            int yCoord = coordinate.y() + coord[0];
-            String newCoordString = "" + xCoord + " " + yCoord;
-            if (
-                yCoord >= 0 && yCoord < image.length &&
-                xCoord >= 0 && xCoord < image[coordinate.y()].length &&
-                image[yCoord][xCoord] == 1 &&
-                !visited.contains(newCoordString)
-            ){
-                stats = findGroupsHelper(stats, image, visited, newCoordString, new Coordinate(xCoord, yCoord));
+        for (int r = 0; r < image.length; r++) {
+            for (int c = 0; c < image[r].length; c++) {
+                String startKey = c + " " + r;
+                if (image[r][c] == 1 && !visited.contains(startKey)) {
+                    int groupSize = 0;
+                    int xSum = 0;
+                    int ySum = 0;
+
+                    ArrayDeque<Coordinate> queue = new ArrayDeque<>();
+                    queue.add(new Coordinate(c, r));
+                    visited.add(startKey);
+
+                    while (!queue.isEmpty()) {
+                        Coordinate current = queue.removeFirst();
+                        int x = current.x();
+                        int y = current.y();
+
+                        groupSize++;
+                        xSum += x;
+                        ySum += y;
+
+                        for (int[] direction : directions) {
+                            int nextX = x + direction[0];
+                            int nextY = y + direction[1];
+                            String nextKey = nextX + " " + nextY;
+
+                            if (
+                                nextY >= 0 && nextY < image.length &&
+                                nextX >= 0 && nextX < image[nextY].length &&
+                                image[nextY][nextX] == 1 &&
+                                !visited.contains(nextKey)
+                            ) {
+                                visited.add(nextKey);
+                                queue.add(new Coordinate(nextX, nextY));
+                            }
+                        }
+                    }
+
+                    int xAvg = xSum / groupSize;
+                    int yAvg = ySum / groupSize;
+                    groupList.add(new Group(groupSize, new Coordinate(xAvg, yAvg)));
+                }
             }
         }
 
-        return stats;
-
-        //go through each item
+        groupList.sort(null);
+        Collections.reverse(groupList);
+        return groupList;
     }
 }
