@@ -109,5 +109,7 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
         }
 
         return stats;
+
+        //go through each item
     }
 }
