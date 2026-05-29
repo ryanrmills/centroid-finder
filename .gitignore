@@ -22,3 +22,15 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# local editor/system files
+.DS_Store
+
+# local Maven cache used for offline sandbox builds
+.m2-local/
+
+# large local test assets
+*.mp4
+
+# build output
+target/
