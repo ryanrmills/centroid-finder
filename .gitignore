@@ -34,3 +34,8 @@ replay_pid*
 
 # build output
 target/
+
+server/node_modules
+server/package-lock.json
+server/storage/incoming/*
+server/storage/results/*
