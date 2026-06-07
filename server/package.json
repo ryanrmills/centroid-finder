@@ -11,11 +11,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "child_process": "^1.0.2",
-    "crypto": "^1.0.1",
     "express": "^5.2.1",
-    "fs": "^0.0.1-security",
-    "multer": "^2.1.1",
-    "path": "^0.12.7"
+    "multer": "^2.1.1"
   }
 }

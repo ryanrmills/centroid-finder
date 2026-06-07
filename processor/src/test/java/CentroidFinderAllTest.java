@@ -1,6 +1,7 @@
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -61,6 +62,60 @@ public class CentroidFinderAllTest {
         assertEquals(new Group(5, new Coordinate(0, 0)), groups.get(0));
         assertEquals(new Group(3, new Coordinate(4, 2)), groups.get(1));
         assertEquals(new Group(2, new Coordinate(2, 5)), groups.get(2));
+    }
+
+    @Test
+    public void dfsFindsLargeConnectedShape() {
+        int[][] image = {
+            {1, 1, 1, 0, 0},
+            {0, 1, 0, 0, 0},
+            {0, 1, 1, 1, 0},
+            {0, 0, 0, 1, 0},
+            {0, 0, 0, 1, 1}
+        };
+
+        List<Group> groups = new DfsBinaryGroupFinder().findConnectedGroups(image);
+
+        assertEquals(1, groups.size());
+        assertEquals(new Group(10, new Coordinate(2, 1)), groups.get(0));
+    }
+
+    @Test
+    public void dfsRejectsEmptyImage() {
+        assertThrows(IllegalArgumentException.class, () ->
+            new DfsBinaryGroupFinder().findConnectedGroups(new int[][] {})
+        );
+    }
+
+    @Test
+    public void dfsRejectsEmptyRows() {
+        assertThrows(IllegalArgumentException.class, () ->
+            new DfsBinaryGroupFinder().findConnectedGroups(new int[][] {{}}
+        ));
+    }
+
+    @Test
+    public void dfsRejectsJaggedImage() {
+        int[][] image = {
+            {1, 0},
+            {1}
+        };
+
+        assertThrows(IllegalArgumentException.class, () ->
+            new DfsBinaryGroupFinder().findConnectedGroups(image)
+        );
+    }
+
+    @Test
+    public void dfsRejectsValuesOtherThanZeroAndOne() {
+        int[][] image = {
+            {1, 2},
+            {0, 1}
+        };
+
+        assertThrows(IllegalArgumentException.class, () ->
+            new DfsBinaryGroupFinder().findConnectedGroups(image)
+        );
     }
 
     @Test

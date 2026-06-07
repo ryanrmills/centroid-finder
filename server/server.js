@@ -5,12 +5,17 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 
 const app = express();
 const PORT = 8080;
+const serverDir = path.dirname(fileURLToPath(import.meta.url));
+const projectDir = path.dirname(serverDir);
+const processorDir = path.join(projectDir, "processor");
+const processorJar = path.join(processorDir, "target", "videoprocessor.jar");
 
-const incomingDir = path.join(process.cwd(), "storage", "incoming");
-const resultsDir = path.join(process.cwd(), "storage", "results");
+const incomingDir = path.join(serverDir, "storage", "incoming");
+const resultsDir = path.join(serverDir, "storage", "results");
 fs.mkdirSync(incomingDir, {recursive: true});
 fs.mkdirSync(resultsDir, {recursive: true});
 
@@ -23,14 +28,14 @@ function runVideoProcessor(inputPath, outputCsv, targetColor, threshold){
     return new Promise((resolve, reject) => {
         const args = [
             "-jar",
-            "target/videoprocessor.jar",
+            processorJar,
             inputPath,
             outputCsv,
             targetColor,
             String(threshold)
         ];
 
-        const proc = spawn("java", args, {cwd: process.cwd()});
+        const proc = spawn("java", args, {cwd: processorDir});
         let stderr = "";
         let stdout = "";
 
@@ -44,6 +49,18 @@ function runVideoProcessor(inputPath, outputCsv, targetColor, threshold){
     })
 }
 
+function parseThreshold(value) {
+    const text = String(value ?? "").trim();
+    if (!/^\d+$/.test(text)) {
+        throw new Error("threshold must be a non-negative integer");
+    }
+    const threshold = Number(text);
+    if (!Number.isSafeInteger(threshold)) {
+        throw new Error("threshold is too large");
+    }
+    return threshold;
+}
+
 app.post("/api/videos/centroids", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "file is required"});
@@ -53,6 +70,13 @@ app.post("/api/videos/centroids", upload.single("file"), async (req, res) => {
 
         if (!/^[0-9a-fA-F]{6}$/.test(targetColor)){
             return res.status(400).json({error: "targetColor must be RRGGBB hex"});
+        }
+
+        let threshold;
+        try {
+            threshold = parseThreshold(thresholdRaw);
+        } catch (err) {
+            return res.status(400).json({error: err.message});
         }
 
         const jobId = crypto.randomUUID();
@@ -66,11 +90,16 @@ app.post("/api/videos/centroids", upload.single("file"), async (req, res) => {
             downloadPath: `/api/videos/results/${jobId}`
         });
     } catch (err) {
-            return res.status(500).json({error: err.message});
+            console.error(err);
+            return res.status(500).json({error: "video processing failed"});
     }
 });
 
 app.get("/api/videos/results/:jobId", (req, res) => {
+    if (!/^[0-9a-fA-F-]{36}$/.test(req.params.jobId)) {
+        return res.status(400).json({error: "invalid jobId"});
+    }
+
     const csvPath = path.join(resultsDir, `${req.params.jobId}.csv`);
     if (!fs.existsSync(csvPath)) return res.status(404).json({error: "not found"});
     res.download(csvPath);

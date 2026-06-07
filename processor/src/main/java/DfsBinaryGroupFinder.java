@@ -1,9 +1,8 @@
 import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
 public class DfsBinaryGroupFinder implements BinaryGroupFinder {
    /**
@@ -35,7 +34,9 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
     */
     @Override
     public List<Group> findConnectedGroups(int[][] image) {
-        Set<String> visited = new HashSet<>();
+        validateImage(image);
+
+        boolean[][] visited = new boolean[image.length][image[0].length];
         List<Group> groupList = new ArrayList<>();
 
         int[][] directions = {
@@ -47,15 +48,14 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
 
         for (int r = 0; r < image.length; r++) {
             for (int c = 0; c < image[r].length; c++) {
-                String startKey = c + " " + r;
-                if (image[r][c] == 1 && !visited.contains(startKey)) {
+                if (image[r][c] == 1 && !visited[r][c]) {
                     int groupSize = 0;
                     int xSum = 0;
                     int ySum = 0;
 
                     ArrayDeque<Coordinate> queue = new ArrayDeque<>();
                     queue.add(new Coordinate(c, r));
-                    visited.add(startKey);
+                    visited[r][c] = true;
 
                     while (!queue.isEmpty()) {
                         Coordinate current = queue.removeFirst();
@@ -69,15 +69,14 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
                         for (int[] direction : directions) {
                             int nextX = x + direction[0];
                             int nextY = y + direction[1];
-                            String nextKey = nextX + " " + nextY;
 
                             if (
                                 nextY >= 0 && nextY < image.length &&
                                 nextX >= 0 && nextX < image[nextY].length &&
                                 image[nextY][nextX] == 1 &&
-                                !visited.contains(nextKey)
+                                !visited[nextY][nextX]
                             ) {
-                                visited.add(nextKey);
+                                visited[nextY][nextX] = true;
                                 queue.add(new Coordinate(nextX, nextY));
                             }
                         }
@@ -93,5 +92,30 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
         groupList.sort(null);
         Collections.reverse(groupList);
         return groupList;
+    }
+
+    private void validateImage(int[][] image) {
+        Objects.requireNonNull(image, "image must not be null");
+        if (image.length == 0) {
+            throw new IllegalArgumentException("image must not be empty");
+        }
+
+        Objects.requireNonNull(image[0], "image rows must not be null");
+        if (image[0].length == 0) {
+            throw new IllegalArgumentException("image rows must not be empty");
+        }
+
+        int width = image[0].length;
+        for (int y = 0; y < image.length; y++) {
+            Objects.requireNonNull(image[y], "image rows must not be null");
+            if (image[y].length != width) {
+                throw new IllegalArgumentException("image must be rectangular");
+            }
+            for (int x = 0; x < image[y].length; x++) {
+                if (image[y][x] != 0 && image[y][x] != 1) {
+                    throw new IllegalArgumentException("image values must be 0 or 1");
+                }
+            }
+        }
     }
 }

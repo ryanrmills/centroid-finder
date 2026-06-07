@@ -34,8 +34,15 @@ replay_pid*
 
 # build output
 target/
+processor/target/
 
 server/node_modules
 server/package-lock.json
 server/storage/incoming/*
 server/storage/results/*
+!server/storage/incoming/.gitkeep
+!server/storage/results/.gitkeep
+
+# generated processor outputs
+binarized.png
+groups.csv

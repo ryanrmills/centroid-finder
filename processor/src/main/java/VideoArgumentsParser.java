@@ -1,4 +1,14 @@
 public class VideoArgumentsParser {
+    private final CliInputParser cliInputParser;
+
+    public VideoArgumentsParser() {
+        this(new CliInputParser());
+    }
+
+    public VideoArgumentsParser(CliInputParser cliInputParser) {
+        this.cliInputParser = cliInputParser;
+    }
+
     public VideoProcessingConfig parse(String[] args) {
         if (args.length != 4) {
             throw new IllegalArgumentException("Expected exactly 4 arguments.");
@@ -6,20 +16,8 @@ public class VideoArgumentsParser {
 
         String inputPath = args[0];
         String outputCsvPath = args[1];
-
-        int targetColor;
-        try {
-            targetColor = Integer.parseInt(args[2], 16);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("targetColor must be a hex color in RRGGBB format.");
-        }
-
-        int threshold;
-        try {
-            threshold = Integer.parseInt(args[3]);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("threshold must be an integer.");
-        }
+        int targetColor = cliInputParser.parseRgbHexColor(args[2]);
+        int threshold = cliInputParser.parseNonNegativeThreshold(args[3]);
 
         return new VideoProcessingConfig(inputPath, outputCsvPath, targetColor, threshold);
     }

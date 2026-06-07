@@ -36,12 +36,14 @@ public class ImageSummaryApp {
         }
         
         String inputImagePath = args[0];
-        String hexTargetColor = args[1];
-        int threshold = 0;
+        CliInputParser parser = new CliInputParser();
+        int targetColor;
+        int threshold;
         try {
-            threshold = Integer.parseInt(args[2]);
-        } catch (NumberFormatException e) {
-            System.err.println("Threshold must be an integer.");
+            targetColor = parser.parseRgbHexColor(args[1]);
+            threshold = parser.parseNonNegativeThreshold(args[2]);
+        } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
             return;
         }
         
@@ -50,16 +52,11 @@ public class ImageSummaryApp {
             inputImage = ImageIO.read(new File(inputImagePath));
         } catch (Exception e) {
             System.err.println("Error loading image: " + inputImagePath);
-            e.printStackTrace();
             return;
         }
-        
-        // Parse the target color from a hex string (format RRGGBB) into a 24-bit integer (0xRRGGBB)
-        int targetColor = 0;
-        try {
-            targetColor = Integer.parseInt(hexTargetColor, 16);
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid hex target color. Please provide a color in RRGGBB format.");
+
+        if (inputImage == null) {
+            System.err.println("Error loading image: unsupported image file.");
             return;
         }
         
@@ -80,13 +77,8 @@ public class ImageSummaryApp {
             e.printStackTrace();
         }
         
-        // Create an ImageGroupFinder using a BinarizingImageGroupFinder with a DFS-based BinaryGroupFinder.
-        ImageGroupFinder groupFinder = new BinarizingImageGroupFinder(binarizer, new DfsBinaryGroupFinder());
-        
-        // Find connected groups in the input image.
-        // The BinarizingImageGroupFinder is expected to internally binarize the image,
-        // then locate connected groups of white pixels.
-        List<Group> groups = groupFinder.findConnectedGroups(inputImage);
+        // Reuse the binary array instead of binarizing the same image twice.
+        List<Group> groups = new DfsBinaryGroupFinder().findConnectedGroups(binaryArray);
         
         // Write the groups information to a CSV file "groups.csv".
         try (PrintWriter writer = new PrintWriter("groups.csv")) {
@@ -95,8 +87,7 @@ public class ImageSummaryApp {
             }
             System.out.println("Groups summary saved as groups.csv");
         } catch (Exception e) {
-            System.err.println("Error writing groups.csv");
-            e.printStackTrace();
+            System.err.println("Error writing groups.csv: " + e.getMessage());
         }
     }
 }

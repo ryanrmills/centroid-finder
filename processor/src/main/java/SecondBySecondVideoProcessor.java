@@ -1,5 +1,9 @@
 import java.awt.image.BufferedImage;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
@@ -14,36 +18,71 @@ public class SecondBySecondVideoProcessor {
     }
 
     public void process(VideoProcessingConfig config) throws Exception {
+        validatePaths(config);
+
         try (
             FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(config.inputPath());
             Java2DFrameConverter converter = new Java2DFrameConverter();
-            PrintWriter writer = new PrintWriter(config.outputCsvPath())
+            PrintWriter writer = openWriter(config.outputCsvPath())
         ) {
             grabber.start();
+            processFrames(grabber, converter, writer);
+            if (writer.checkError()) {
+                throw new IOException("Could not finish writing CSV: " + config.outputCsvPath());
+            }
+        }
+    }
 
-            long nextSecondToWrite = 0;
-            Frame frame;
+    private void validatePaths(VideoProcessingConfig config) throws IOException {
+        Path inputPath = Path.of(config.inputPath());
+        if (!Files.isRegularFile(inputPath) || !Files.isReadable(inputPath)) {
+            throw new FileNotFoundException("Input video is missing or unreadable: " + config.inputPath());
+        }
 
-            while ((frame = grabber.grabImage()) != null) {
-                long currentSecond = grabber.getTimestamp() / 1_000_000L;
-                if (currentSecond < nextSecondToWrite) {
-                    continue;
-                }
+        Path outputPath = Path.of(config.outputCsvPath());
+        Path parent = outputPath.getParent();
+        if (parent != null && !Files.exists(parent)) {
+            Files.createDirectories(parent);
+        }
+    }
 
-                while (nextSecondToWrite < currentSecond) {
-                    writeRow(writer, nextSecondToWrite, NO_CENTROID);
-                    nextSecondToWrite++;
-                }
+    private PrintWriter openWriter(String outputCsvPath) throws FileNotFoundException {
+        return new PrintWriter(outputCsvPath);
+    }
 
-                BufferedImage image = converter.convert(frame);
-                Coordinate centroid = NO_CENTROID;
-                if (image != null) {
-                    centroid = centroidFinder.findLargestCentroidOrDefault(image, NO_CENTROID);
-                }
+    private void processFrames(
+        FFmpegFrameGrabber grabber,
+        Java2DFrameConverter converter,
+        PrintWriter writer
+    ) throws Exception {
+        long nextSecondToWrite = 0;
+        boolean wroteFrame = false;
+        Frame frame;
 
-                writeRow(writer, nextSecondToWrite, centroid);
+        while ((frame = grabber.grabImage()) != null) {
+            long currentSecond = grabber.getTimestamp() / 1_000_000L;
+            if (currentSecond < nextSecondToWrite) {
+                continue;
+            }
+
+            while (nextSecondToWrite < currentSecond) {
+                writeRow(writer, nextSecondToWrite, NO_CENTROID);
                 nextSecondToWrite++;
             }
+
+            BufferedImage image = converter.convert(frame);
+            Coordinate centroid = NO_CENTROID;
+            if (image != null) {
+                centroid = centroidFinder.findLargestCentroidOrDefault(image, NO_CENTROID);
+            }
+
+            writeRow(writer, nextSecondToWrite, centroid);
+            nextSecondToWrite++;
+            wroteFrame = true;
+        }
+
+        if (!wroteFrame) {
+            throw new IllegalArgumentException("Input video did not contain readable image frames.");
         }
     }
 

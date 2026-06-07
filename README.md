@@ -64,3 +64,94 @@ Once you have confirmed it is working, clean up your code, make sure it's commit
 ## Optional Wave 7: Enhancements?
 If you want to, you can make a new branch to start experimenting. See if you can come up with a better color distance method (hint: look up perceptual color spaces). See if you can make your code more efficient or mor suited to spotting salamanders! Experiment with other test files. PLEASE MAKE SURE THIS IS IN A SEPARATE BRANCH FROM YOUR SUBMISSION.
 
+## Current Project Layout
+
+The current processor code lives in `processor/src/main/java`, and the tests live in `processor/src/test/java`.
+
+Important entry points:
+
+- `ImageSummaryApp` processes one image and writes `binarized.png` plus `groups.csv`.
+- `VideoSummaryApp` processes a video and writes one centroid row per second.
+- `server/server.js` is an optional Express wrapper that accepts a video upload and calls the Java video processor.
+
+## Build and Test
+
+From the `processor` directory, run:
+
+```bash
+mvn test
+```
+
+To build the runnable video processor jar:
+
+```bash
+mvn -DskipTests package
+```
+
+The shaded jar is written to:
+
+```text
+processor/target/videoprocessor.jar
+```
+
+## Image Mode
+
+Run image mode from the `processor` directory with:
+
+```bash
+mvn exec:java -Dexec.mainClass=ImageSummaryApp -Dexec.args="sampleInput/squares.jpg FFA200 164"
+```
+
+Image mode writes:
+
+- `binarized.png`: the black-and-white thresholded image.
+- `groups.csv`: one row per connected group in `size,x,y` format.
+
+## Video Mode
+
+After building the jar, run video mode from the `processor` directory with:
+
+```bash
+java -jar target/videoprocessor.jar <inputPath> <outputCsv> <targetColor> <threshold>
+```
+
+Example:
+
+```bash
+java -jar target/videoprocessor.jar sampleInput/video.mp4 sampleOutput/video-groups.csv FFA200 164
+```
+
+Video mode writes CSV rows in this format:
+
+```text
+seconds,x,y
+```
+
+The `seconds` value is the second of the video being summarized. The `x` and `y` values are the centroid of the largest matching connected group for that second. If no centroid is found for a second, the row uses `-1,-1`.
+
+## Processing Pipeline
+
+The image and video workflows use the same main pipeline:
+
+1. Parse command-line arguments.
+2. Read an image or a video frame.
+3. Convert pixels into a binary image based on Euclidean color distance.
+4. Find connected groups of matching pixels.
+5. Use the largest group's centroid.
+6. Write the result to an output file.
+
+## Optional Server Wrapper
+
+The `server` directory contains an optional Express API. It expects a built Java jar and accepts uploads at:
+
+```text
+POST /api/videos/centroids
+```
+
+Request fields:
+
+- `file`: the uploaded video file.
+- `targetColor`: a six-character RGB hex color such as `FFA200`.
+- `threshold`: a non-negative integer.
+
+Successful responses include a `jobId` and a download path for the generated CSV.

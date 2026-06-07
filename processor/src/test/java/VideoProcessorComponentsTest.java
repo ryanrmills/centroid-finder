@@ -39,11 +39,65 @@ public class VideoProcessorComponentsTest {
     }
 
     @Test
+    public void parserRejectsShortHexColor() {
+        VideoArgumentsParser parser = new VideoArgumentsParser();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parser.parse(new String[] {"input.mp4", "out.csv", "FFF", "164"})
+        );
+    }
+
+    @Test
+    public void parserRejectsLongHexColor() {
+        VideoArgumentsParser parser = new VideoArgumentsParser();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parser.parse(new String[] {"input.mp4", "out.csv", "00FFA200", "164"})
+        );
+    }
+
+    @Test
+    public void parserRejectsEmptyHexColor() {
+        VideoArgumentsParser parser = new VideoArgumentsParser();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parser.parse(new String[] {"input.mp4", "out.csv", "", "164"})
+        );
+    }
+
+    @Test
     public void parserRejectsNonIntegerThreshold() {
         VideoArgumentsParser parser = new VideoArgumentsParser();
 
         assertThrows(IllegalArgumentException.class, () ->
             parser.parse(new String[] {"input.mp4", "out.csv", "FFA200", "high"})
+        );
+    }
+
+    @Test
+    public void parserRejectsNegativeThreshold() {
+        VideoArgumentsParser parser = new VideoArgumentsParser();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parser.parse(new String[] {"input.mp4", "out.csv", "FFA200", "-1"})
+        );
+    }
+
+    @Test
+    public void parserRejectsEmptyThreshold() {
+        VideoArgumentsParser parser = new VideoArgumentsParser();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parser.parse(new String[] {"input.mp4", "out.csv", "FFA200", ""})
+        );
+    }
+
+    @Test
+    public void parserRejectsTooLargeThreshold() {
+        VideoArgumentsParser parser = new VideoArgumentsParser();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            parser.parse(new String[] {"input.mp4", "out.csv", "FFA200", "999999999999"})
         );
     }
 
