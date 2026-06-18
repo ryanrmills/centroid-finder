@@ -2,6 +2,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.image.BufferedImage;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -129,5 +130,55 @@ public class VideoProcessorComponentsTest {
         );
 
         assertEquals(new Coordinate(7, 4), result);
+    }
+
+    @Test
+    public void sectionTrackerMapsCentroidToNineSections() {
+        FrameSectionTracker tracker = new FrameSectionTracker();
+
+        assertEquals(
+            FrameSectionTracker.Section.TOP_LEFT,
+            tracker.sectionFor(new Coordinate(0, 0), 90, 90)
+        );
+        assertEquals(
+            FrameSectionTracker.Section.CENTER,
+            tracker.sectionFor(new Coordinate(45, 45), 90, 90)
+        );
+        assertEquals(
+            FrameSectionTracker.Section.BOTTOM_RIGHT,
+            tracker.sectionFor(new Coordinate(89, 89), 90, 90)
+        );
+    }
+
+    @Test
+    public void sectionTrackerCountsSecondsAndFindsMostVisitedSection() {
+        FrameSectionTracker tracker = new FrameSectionTracker();
+
+        tracker.record(new Coordinate(10, 10), 90, 90);
+        tracker.record(new Coordinate(45, 45), 90, 90);
+        tracker.record(new Coordinate(46, 46), 90, 90);
+
+        assertEquals(1, tracker.secondsIn(FrameSectionTracker.Section.TOP_LEFT));
+        assertEquals(2, tracker.secondsIn(FrameSectionTracker.Section.CENTER));
+        assertEquals(FrameSectionTracker.Section.CENTER, tracker.mostVisitedSection());
+    }
+
+    @Test
+    public void sectionTrackerIgnoresMissingCentroids() {
+        FrameSectionTracker tracker = new FrameSectionTracker();
+
+        tracker.record(new Coordinate(-1, -1), 90, 90);
+
+        assertEquals(FrameSectionTracker.Section.NONE, tracker.mostVisitedSection());
+    }
+
+    @Test
+    public void videoProcessorBuildsSectionSummaryPathBesideOutputCsv() {
+        SecondBySecondVideoProcessor processor =
+            new SecondBySecondVideoProcessor(new LargestCentroidFinder(image -> List.of()));
+
+        Path summaryPath = processor.sectionSummaryPath("out/results.csv");
+
+        assertEquals(Path.of("out/results-sections.csv"), summaryPath);
     }
 }

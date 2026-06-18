@@ -21,6 +21,7 @@ public class VideoSummaryApp {
         try {
             processor.process(config);
             System.out.println("Done. CSV written to: " + config.outputCsvPath());
+            System.out.println("Section summary written to: " + processor.sectionSummaryPath(config.outputCsvPath()));
         } catch (Exception e) {
             System.err.println("Error processing video: " + e.getMessage());
         }

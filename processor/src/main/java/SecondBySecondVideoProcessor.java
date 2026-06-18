@@ -25,11 +25,13 @@ public class SecondBySecondVideoProcessor {
             Java2DFrameConverter converter = new Java2DFrameConverter();
             PrintWriter writer = openWriter(config.outputCsvPath())
         ) {
+            FrameSectionTracker sectionTracker = new FrameSectionTracker();
             grabber.start();
-            processFrames(grabber, converter, writer);
+            processFrames(grabber, converter, writer, sectionTracker);
             if (writer.checkError()) {
                 throw new IOException("Could not finish writing CSV: " + config.outputCsvPath());
             }
+            sectionTracker.writeSummary(sectionSummaryPath(config.outputCsvPath()));
         }
     }
 
@@ -53,7 +55,8 @@ public class SecondBySecondVideoProcessor {
     private void processFrames(
         FFmpegFrameGrabber grabber,
         Java2DFrameConverter converter,
-        PrintWriter writer
+        PrintWriter writer,
+        FrameSectionTracker sectionTracker
     ) throws Exception {
         long nextSecondToWrite = 0;
         boolean wroteFrame = false;
@@ -74,6 +77,7 @@ public class SecondBySecondVideoProcessor {
             Coordinate centroid = NO_CENTROID;
             if (image != null) {
                 centroid = centroidFinder.findLargestCentroidOrDefault(image, NO_CENTROID);
+                sectionTracker.record(centroid, image.getWidth(), image.getHeight());
             }
 
             writeRow(writer, nextSecondToWrite, centroid);
@@ -88,5 +92,21 @@ public class SecondBySecondVideoProcessor {
 
     private void writeRow(PrintWriter writer, long second, Coordinate centroid) {
         writer.printf("%d,%d,%d%n", second, centroid.x(), centroid.y());
+    }
+
+    public Path sectionSummaryPath(String outputCsvPath) {
+        Path outputPath = Path.of(outputCsvPath);
+        Path fileNamePath = outputPath.getFileName();
+        String fileName = fileNamePath == null ? outputCsvPath : fileNamePath.toString();
+        String sectionFileName;
+
+        if (fileName.endsWith(".csv")) {
+            sectionFileName = fileName.substring(0, fileName.length() - 4) + "-sections.csv";
+        } else {
+            sectionFileName = fileName + "-sections.csv";
+        }
+
+        Path parent = outputPath.getParent();
+        return parent == null ? Path.of(sectionFileName) : parent.resolve(sectionFileName);
     }
 }

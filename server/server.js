@@ -6,6 +6,8 @@ import path from 'path';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import cors from 'cors';
+
 
 const app = express();
 const PORT = 8080;
@@ -61,6 +63,10 @@ function parseThreshold(value) {
     return threshold;
 }
 
+app.use(cors({
+  origin: ['http://127.0.0.1:5173', 'http://localhost:5173']
+}));
+
 app.post("/api/videos/centroids", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "file is required"});
@@ -81,13 +87,16 @@ app.post("/api/videos/centroids", upload.single("file"), async (req, res) => {
 
         const jobId = crypto.randomUUID();
         const outputCsv = path.join(resultsDir, `${jobId}.csv`);
+        const sectionSummaryCsv = path.join(resultsDir, `${jobId}-sections.csv`);
 
         await runVideoProcessor(req.file.path, outputCsv, targetColor.toUpperCase(), threshold);
 
         return res.json({
             jobId,
             outputCsv,
-            downloadPath: `/api/videos/results/${jobId}`
+            sectionSummaryCsv,
+            downloadPath: `/api/videos/results/${jobId}`,
+            sectionSummaryDownloadPath: `/api/videos/results/${jobId}/sections`
         });
     } catch (err) {
             console.error(err);
@@ -101,6 +110,16 @@ app.get("/api/videos/results/:jobId", (req, res) => {
     }
 
     const csvPath = path.join(resultsDir, `${req.params.jobId}.csv`);
+    if (!fs.existsSync(csvPath)) return res.status(404).json({error: "not found"});
+    res.download(csvPath);
+})
+
+app.get("/api/videos/results/:jobId/sections", (req, res) => {
+    if (!/^[0-9a-fA-F-]{36}$/.test(req.params.jobId)) {
+        return res.status(400).json({error: "invalid jobId"});
+    }
+
+    const csvPath = path.join(resultsDir, `${req.params.jobId}-sections.csv`);
     if (!fs.existsSync(csvPath)) return res.status(404).json({error: "not found"});
     res.download(csvPath);
 })

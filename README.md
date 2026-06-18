@@ -129,6 +129,18 @@ seconds,x,y
 
 The `seconds` value is the second of the video being summarized. The `x` and `y` values are the centroid of the largest matching connected group for that second. If no centroid is found for a second, the row uses `-1,-1`.
 
+Video mode also writes a second CSV beside the coordinate CSV. For example, if the output file is `results.csv`, the section summary file is `results-sections.csv`.
+
+The section summary divides the video frame into a 3 by 3 grid:
+
+```text
+top-left, top-center, top-right
+middle-left, center, middle-right
+bottom-left, bottom-center, bottom-right
+```
+
+Each second with a detected centroid increments one of those section buckets. The final row shows which section had the most detected time.
+
 ## Processing Pipeline
 
 The image and video workflows use the same main pipeline:
@@ -155,3 +167,4 @@ Request fields:
 - `threshold`: a non-negative integer.
 
 Successful responses include a `jobId` and a download path for the generated CSV.
+They also include a `sectionSummaryDownloadPath` for the section bucket summary.
